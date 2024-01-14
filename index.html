@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>DTMF Tone Generator</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Audiowide&family=Montserrat&display=swap");
+
+      body {
+        font-family: "Audiowide", cursive;
+        background-color: #5d3891;
+        color: chartreuse;
+        text-shadow: -1px -1px 3px black, 1px 1px 3px black;
+      }
+
+      input {
+        border-radius: 8px;
+        box-shadow: -1px -1px 1px chartreuse, 1px 1px 1px chartreuse;
+      }
+
+      .btn {
+        font-family: "Montserrat", sans-serif;
+        font-size: larger;
+        background-color: #fd841f;
+        color: white;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 8px;
+        border-color: white;
+        box-shadow: 3px 3px 5px black;
+        margin: 0.25rem;
+        text-shadow: -1px -1px 2px black, 1px 1px 2px white;
+      }
+      .btn:active {
+        box-shadow: 1px 1px 3px black;
+      }
+
+      <!-- .main {
+        display:inline;
+      } -->
+
+      .options-container {
+        margin-left: 0.5em;
+      }
+      <!-- .numpad-container {
+
+      } -->
+    </style>
+  </head>
+  <body>
+    <h1>DTMF Tone Generator</h1>
+    <p>Click on a button to generate DTMF tone:</p>
+    <div class="main">
+      <div class="numpad-container">
+        <div class="button-column"></div>
+        <div class="button-column"></div>
+        <div class="button-column"></div>
+        <div class="button-column"></div>
+      </div>
+      <div class="options-container">
+        <p>
+          <label for="tone-sequence">Enter a tone sequence:</label>
+          <input
+            type="text"
+            id="tone-sequence"
+            value="9878999x888x9CCx9878999x88987"
+          />
+          <button onclick="playSequence()">Play</button>
+        </p>
+      </div>
+    </div>
+    <h2>Playing: <span id="note"></span></h2>
+
+    <script>
+      const frequencies = {
+        1: [697, 1209],
+        2: [697, 1336],
+        3: [697, 1477],
+        A: [697, 1633],
+        4: [770, 1209],
+        5: [770, 1336],
+        6: [770, 1477],
+        B: [770, 1633],
+        7: [852, 1209],
+        8: [852, 1336],
+        9: [852, 1477],
+        C: [852, 1633],
+        "*": [941, 1209],
+        0: [941, 1336],
+        "#": [941, 1477],
+        D: [941, 1633],
+      };
+
+      // Add buttons to the container
+      const container = document.querySelector(".numpad-container");
+      const order = [
+        "1",
+        "2",
+        "3",
+        "A",
+        "4",
+        "5",
+        "6",
+        "B",
+        "7",
+        "8",
+        "9",
+        "C",
+        "*",
+        "0",
+        "#",
+        "D",
+      ];
+      let i = 0;
+      let row;
+      for (const key of order) {
+        if (i % 4 === 0) {
+          row = document.createElement("div");
+          row.classList.add("numpad-row");
+          container.appendChild(row);
+        }
+
+        const button = document.createElement("button");
+        button.id = `btn${key}`;
+        button.classList.add("btn");
+        button.innerText = key;
+        button.addEventListener("mousedown", () => startTone(key));
+        button.addEventListener("mouseup", stopTone);
+        button.addEventListener("mouseleave", stopTone);
+        row.appendChild(button);
+
+        i++;
+      }
+
+      let osc1,
+        osc2,
+        gainNode,
+        audioCtx,
+        isPlaying = false;
+
+      function startTone(char) {
+        if (!isPlaying) {
+          isPlaying = true;
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          osc1 = audioCtx.createOscillator();
+          osc2 = audioCtx.createOscillator();
+          gainNode = audioCtx.createGain();
+          osc1.frequency.value = frequencies[char][0];
+          osc2.frequency.value = frequencies[char][1];
+          gainNode.gain.value = 0.5;
+          osc1.connect(gainNode);
+          osc2.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          document.getElementById("note").textContent = char;
+          osc1.start();
+          osc2.start();
+        }
+      }
+
+      function stopTone() {
+        if (isPlaying) {
+          osc1.stop();
+          osc2.stop();
+          document.getElementById("note").textContent = "_";
+          audioCtx.close();
+          isPlaying = false;
+        }
+      }
+
+      async function playSequence() {
+        let sequence = document.getElementById("tone-sequence").value;
+        let delay = 250; // delay between each tone
+        for (let i = 0; i < sequence.length; i++) {
+          let char = sequence.charAt(i);
+          if (char in frequencies) {
+            startTone(char);
+            setTimeout(() => {
+              stopTone();
+            }, 200);
+          }
+          await new Promise((resolve) => setTimeout(resolve, delay)); // wait for delay
+        }
+      }
+    </script>
+  </body>
+</html>
